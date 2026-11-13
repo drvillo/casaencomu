@@ -166,7 +166,6 @@ function minuteDiff(got: Wall, want: Wall) {
   return (left - right) / 60000;
 }
 
-// Two corrections. A spring-forward gap never lands on the asked clock, so it stays bad_clock.
 function resolveWall(want: Wall, zoneName: string): Instant | null {
   let ms = Date.UTC(want.year, want.month - 1, want.day, want.hour, want.minute);
   for (let i = 0; i < 2; i++) {

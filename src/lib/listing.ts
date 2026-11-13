@@ -78,7 +78,6 @@ export const EVENT_KINDS = [
   // Content-free, both of them: the feed says somebody spoke, never what they said (#139).
   "opinion",
   "opinion_withdrawn",
-  // The visit thread. The payload is the status change, never the letter or the note.
   "visit_status",
   "visit_reply",
 ] as const;

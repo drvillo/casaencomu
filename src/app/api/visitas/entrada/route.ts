@@ -6,7 +6,6 @@ import { act, providerMessageId, replyToken } from "@/lib/visit";
 export async function POST(request: Request) {
   const inbound = await readInbound(request);
   if (!inbound.ok) return new Response(null, { status: inbound.status });
-  // An unknown project stops here. inProject would create a database file for any id.
   const members = await membersOf(inbound.projectId);
   if (members.length === 0) return new Response(null, { status: 404 });
   const result = await inProject(inbound.projectId, () =>

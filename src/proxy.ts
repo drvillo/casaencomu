@@ -85,9 +85,8 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Exempt: the health probe, Next's own assets, the favicon, the capture endpoints, and the
-  // visit inbound webhook. A capture arrives from a portal's own page, or from the browser reader
-  // on the host, and carries no session of ours; the per-member `capture_token` is its guard.
-  // The webhook carries `MAIL_INBOUND_SECRET` instead, and it must not read a session.
+  // Exempt: the health probe, Next's own assets, the favicon, and the capture endpoints. A
+  // capture arrives from a portal's own page, or from the browser reader on the host, and carries
+  // no session of ours; the per-member `capture_token` is its guard and identifies the member.
   matcher: ["/((?!api/health|api/capture|api/visitas/entrada|_next/|favicon.ico).*)"],
 };

@@ -13,7 +13,7 @@ const ITEMS = [
 const ROW = "flex min-h-11 items-center gap-3 rounded-lg px-3 text-[15px] transition hover:bg-surface-soft";
 
 /**
- * You, in the top bar. Your settings, the visits, your projects, and the way out.
+ * You, in the top bar. Your settings, your projects, and the way out.
  *
  * It replaces the two controls that used to sit here: an icon of several people, which looked
  * like a list of members rather than a way to your own account, and a `?` that spent a whole slot

@@ -400,7 +400,6 @@ async function bookStage(tx: Transaction, propertyId: PropertyId, at: string) {
   const found = await tx.execute({ sql: "SELECT stage, stage_version FROM properties WHERE id = ?", args: [propertyId] });
   const current = found.rows[0];
   if (!current || typeof current.stage !== "string" || current.stage === "descartada") return;
-  // A lost race on the family stage keeps the visit that was just booked.
   await commitStage(tx, {
     propertyId,
     to: "visita_prevista",
@@ -698,7 +697,6 @@ export async function act(command: VisitCommand, deps?: Partial<VisitDeps>): Pro
   const at = now.toISOString();
   if (command.type === "save_rules") return saveRules(command.userId, command.rules);
   if (command.type === "deliver") {
-    // No reply domain means there is no From address. Unsent rows wait until one is set.
     if (!deps?.mail && !process.env.MAIL_REPLY_DOMAIN?.trim()) return { ok: true, kind: "delivered", sent: 0 };
     return { ok: true, kind: "delivered", sent: await sendUnsent(await mailerFrom(deps?.mail)) };
   }

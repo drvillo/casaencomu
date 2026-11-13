@@ -53,7 +53,6 @@ export async function register() {
     }
   }, 120_000).unref();
 
-  // Outbound visit letters. The row is already unsent; this only hands it to the transport.
   const { act } = await import("./lib/visit");
   setInterval(async () => {
     if (mailing) return;
