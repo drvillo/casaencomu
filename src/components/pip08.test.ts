@@ -128,7 +128,8 @@ describe("a refused save keeps the words (F25)", () => {
   });
 
   it("a stage change is conditional on the version it was drawn from", () => {
-    expect(actions).toContain("WHERE id = ? AND stage_version = ?");
+    const stage = read("../lib/stage.ts");
+    expect(stage).toContain("WHERE id = ? AND stage_version = ?");
     expect(actions).toContain("Number(prop.rows[0].stage_version) !== seen");
     expect(opinion).toContain('name="version"');
   });

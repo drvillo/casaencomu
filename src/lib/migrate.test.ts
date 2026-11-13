@@ -39,14 +39,20 @@ const dropEnrichmentColumns = async () => {
     await db.execute(`ALTER TABLE sources DROP COLUMN ${name}`);
   }
 };
+const dropVisitTables = async () => {
+  await db.execute("DROP TABLE IF EXISTS visit_messages");
+  await db.execute("DROP TABLE IF EXISTS visit_cases");
+  await db.execute("DROP TABLE IF EXISTS visit_rules");
+};
 const rewind = async (version: number) => {
   await dropEnrichmentColumns();
+  await dropVisitTables();
   await db.execute(`PRAGMA user_version = ${version}`);
 };
 
 describe("the migration chain", () => {
-  it("reaches version 9 and adds every column the code reads", async () => {
-    expect(Number((await db.execute("PRAGMA user_version")).rows[0][0])).toBe(10);
+  it("reaches version 11 and adds every column the code reads", async () => {
+    expect(Number((await db.execute("PRAGMA user_version")).rows[0][0])).toBe(11);
     const cols = async (table: string) =>
       (await db.execute(`PRAGMA table_info(${table})`)).rows.map((r) => String(r.name));
     expect(await cols("sources")).toEqual(
@@ -79,7 +85,7 @@ describe("the migration chain", () => {
 
   it("is idempotent: running it again changes nothing", async () => {
     await applySchema();
-    expect(Number((await db.execute("PRAGMA user_version")).rows[0][0])).toBe(10);
+    expect(Number((await db.execute("PRAGMA user_version")).rows[0][0])).toBe(11);
   });
 
   // Everything stored before this migration was read the old way, and the record says so: a row
@@ -100,6 +106,7 @@ describe("the opinions everybody already had", () => {
   // row without inventing a word of it — no stance, no reasoning, and their own date.
   it("gives every past scorer an opinion, keeps the scores, and invents nothing", async () => {
     await dropEnrichmentColumns();
+    await dropVisitTables();
     const home = randomUUID();
     const person = randomUUID();
     await db.batch(

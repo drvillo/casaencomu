@@ -1,23 +1,18 @@
 "use server";
 
-import type { InStatement } from "@libsql/client";
 import { revalidatePath } from "next/cache";
-import { randomUUID } from "node:crypto";
 import { currentUser } from "@/lib/auth";
 import type { DraftOwner } from "@/lib/draft-storage";
 import { currentProjectId, db } from "@/lib/db";
-import { STAGE_LABELS, STAGES, type EventKind, type Stage } from "@/lib/listing";
+import { STAGE_LABELS, STAGES, type Stage } from "@/lib/listing";
 import { edit, post, remove, type CommentResult, type Reason } from "@/lib/comments";
 import { publish, saveDraft, withdraw, type OpinionInput, type Result } from "@/lib/opinions";
 import { setBudget } from "@/lib/settings";
+import { commitStage } from "@/lib/stage";
+import { propertyId as parsePropertyId, userId } from "@/lib/visit-plan";
 
 const LIST = "/propiedades";
 const detail = (id: string) => `${LIST}/${id}`;
-
-const event = (propertyId: string, kind: EventKind, payload: unknown, actorId: string, at: string): InStatement => ({
-  sql: "INSERT INTO events (id, property_id, kind, payload_json, actor_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-  args: [randomUUID(), propertyId, kind, JSON.stringify(payload), actorId, at],
-});
 
 const nonNegInt = (v: FormDataEntryValue | null) => {
   const n = Number(v);
@@ -58,34 +53,45 @@ export async function stageAction(_prev: StageState, formData: FormData): Promis
   if (!STAGES.includes(to as Stage)) return { ok: false, message: "Esa etapa no existe." };
   if (!Number.isInteger(seen)) return { ok: false, message: "Vuelve a cargar la página e inténtalo otra vez." };
 
-  const prop = await db.execute({ sql: "SELECT stage, stage_version FROM properties WHERE id = ?", args: [propertyId] });
-  const from = prop.rows[0]?.stage;
-  if (typeof from !== "string") return { ok: false, message: "Esta propiedad ya no existe." };
-  if (Number(prop.rows[0].stage_version) !== seen) {
-    return {
-      ok: false,
-      message: `Otra persona la ha movido a ${STAGE_LABELS[from as Stage] ?? from} mientras mirabas. Míralo y vuelve a guardar.`,
-    };
-  }
-  if (from === to) return { ok: false, message: "Ya está en esa etapa." };
+  const parsed = parsePropertyId(propertyId);
+  if (!parsed.ok) return { ok: false, message: "Esta propiedad ya no existe." };
 
-  const now = new Date().toISOString();
-  await db.batch(
-    [
-      {
-        // stage_version advances here and nowhere else: a source refresh must not look like a
-        // decision (doc 05 § 3). The `WHERE` on it is what makes the check above a real one and
-        // not a guess that another write can slip past.
-        sql: "UPDATE properties SET stage = ?, stage_version = stage_version + 1, updated_at = ? WHERE id = ? AND stage_version = ?",
-        args: [to, now, propertyId, seen],
-      },
-      event(propertyId, "stage_change", { from, to }, user.id, now),
-    ],
-    "write",
-  );
-  revalidatePath(detail(propertyId));
-  revalidatePath(LIST);
-  return { ok: true, saved: STAGE_LABELS[to as Stage] };
+  const tx = await db.transaction("write");
+  try {
+    const prop = await tx.execute({ sql: "SELECT stage, stage_version FROM properties WHERE id = ?", args: [propertyId] });
+    const from = prop.rows[0]?.stage;
+    if (typeof from !== "string") return { ok: false, message: "Esta propiedad ya no existe." };
+    if (Number(prop.rows[0].stage_version) !== seen) {
+      return {
+        ok: false,
+        message: `Otra persona la ha movido a ${STAGE_LABELS[from as Stage] ?? from} mientras mirabas. Míralo y vuelve a guardar.`,
+      };
+    }
+    if (from === to) return { ok: false, message: "Ya está en esa etapa." };
+
+    const now = new Date().toISOString();
+    const wrote = await commitStage(tx, {
+      propertyId: parsed.id,
+      to: to as Stage,
+      seen,
+      actorId: userId(user.id),
+      now,
+    });
+    if (!wrote.ok) {
+      if (wrote.reason === "missing" || wrote.current === null) return { ok: false, message: "Esta propiedad ya no existe." };
+      return {
+        ok: false,
+        message: `Otra persona la ha movido a ${STAGE_LABELS[wrote.current] ?? wrote.current} mientras mirabas. Míralo y vuelve a guardar.`,
+      };
+    }
+    if (!wrote.changed) return { ok: false, message: "Ya está en esa etapa." };
+    await tx.commit();
+    revalidatePath(detail(propertyId));
+    revalidatePath(LIST);
+    return { ok: true, saved: STAGE_LABELS[to as Stage] };
+  } finally {
+    if (!tx.closed) await tx.rollback();
+  }
 }
 
 /* -------------------------------------------------------------------------------------------
