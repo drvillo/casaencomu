@@ -696,6 +696,8 @@ export async function act(command: VisitCommand, deps?: Partial<VisitDeps>): Pro
   const at = now.toISOString();
   if (command.type === "save_rules") return saveRules(command.userId, command.rules);
   if (command.type === "deliver") {
+    // No reply domain means there is no From address. Unsent rows wait until one is set.
+    if (!deps?.mail && !process.env.MAIL_REPLY_DOMAIN?.trim()) return { ok: true, kind: "delivered", sent: 0 };
     return { ok: true, kind: "delivered", sent: await sendUnsent(await mailerFrom(deps?.mail)) };
   }
   const tx = await db.transaction("write");
