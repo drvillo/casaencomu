@@ -313,6 +313,103 @@ const MIGRATIONS: Migration[] = [
       "ALTER TABLE sources ADD COLUMN enrichment_lease_until TEXT",
     ],
   },
+  {
+    version: 11,
+    owner: "visits — outreach",
+    sql: [
+      `CREATE TABLE visit_rules (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id),
+  kind TEXT NOT NULL CHECK (kind IN ('weekly', 'span')),
+  weekday INTEGER,
+  start_min INTEGER,
+  end_min INTEGER,
+  start_at TEXT,
+  end_at TEXT,
+  zone TEXT NOT NULL,
+  CHECK (
+    (kind = 'weekly'
+      AND weekday BETWEEN 1 AND 7
+      AND start_min BETWEEN 0 AND 1439
+      AND end_min BETWEEN 1 AND 1440
+      AND start_min < end_min
+      AND start_at IS NULL
+      AND end_at IS NULL)
+    OR
+    (kind = 'span'
+      AND weekday IS NULL
+      AND start_min IS NULL
+      AND end_min IS NULL
+      AND start_at IS NOT NULL
+      AND end_at IS NOT NULL
+      AND start_at < end_at)
+  )
+)`,
+      "CREATE INDEX visit_rules_user ON visit_rules(user_id)",
+      `CREATE TABLE visit_cases (
+  property_id TEXT PRIMARY KEY REFERENCES properties(id) ON DELETE CASCADE,
+  contact_email TEXT NOT NULL CHECK (length(contact_email) <= 200),
+  status TEXT NOT NULL CHECK (status IN (
+    'por_contactar', 'contactado', 'esperando_respuesta', 'no_sigue',
+    'visita_propuesta', 'visita_confirmada', 'visitada', 'rechazada')),
+  reply_token TEXT NOT NULL UNIQUE,
+  confirmed_start TEXT,
+  confirmed_end TEXT,
+  note TEXT NOT NULL DEFAULT '' CHECK (length(note) <= 2000),
+  note_user_id TEXT REFERENCES users(id),
+  note_at TEXT,
+  attention INTEGER NOT NULL DEFAULT 0 CHECK (attention IN (0, 1)),
+  case_version INTEGER NOT NULL DEFAULT 1,
+  cycle INTEGER NOT NULL DEFAULT 1 CHECK (cycle >= 1),
+  created_by TEXT NOT NULL REFERENCES users(id),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  CHECK (
+    (status IN ('visita_confirmada', 'visitada')
+      AND confirmed_start IS NOT NULL
+      AND confirmed_end IS NOT NULL
+      AND confirmed_start < confirmed_end)
+    OR
+    (status NOT IN ('visita_confirmada', 'visitada')
+      AND confirmed_start IS NULL
+      AND confirmed_end IS NULL)
+  )
+)`,
+      `CREATE TABLE visit_messages (
+  id TEXT PRIMARY KEY,
+  property_id TEXT NOT NULL REFERENCES visit_cases(property_id) ON DELETE CASCADE,
+  direction TEXT NOT NULL CHECK (direction IN ('in', 'out')),
+  purpose TEXT NOT NULL CHECK (purpose IN ('ask', 'confirm', 'counter', 'reply')),
+  provider_message_id TEXT,
+  idempotency_key TEXT,
+  rfc_message_id TEXT,
+  in_reply_to TEXT,
+  body TEXT NOT NULL CHECK (length(body) <= 100000),
+  parsed TEXT CHECK (parsed IS NULL OR parsed IN ('yes', 'no', 'unknown')),
+  ranges_json TEXT,
+  send_state TEXT NOT NULL CHECK (send_state IN ('received', 'unsent', 'sent')),
+  created_at TEXT NOT NULL,
+  CHECK (
+    (direction = 'in'
+      AND purpose = 'reply'
+      AND send_state = 'received'
+      AND provider_message_id IS NOT NULL
+      AND idempotency_key IS NULL)
+    OR
+    (direction = 'out'
+      AND purpose IN ('ask', 'confirm', 'counter')
+      AND send_state IN ('unsent', 'sent')
+      AND idempotency_key IS NOT NULL)
+  )
+)`,
+      `CREATE UNIQUE INDEX visit_messages_provider
+  ON visit_messages(provider_message_id) WHERE provider_message_id IS NOT NULL`,
+      `CREATE UNIQUE INDEX visit_messages_key
+  ON visit_messages(idempotency_key) WHERE idempotency_key IS NOT NULL`,
+      `CREATE UNIQUE INDEX visit_messages_rfc
+  ON visit_messages(rfc_message_id) WHERE rfc_message_id IS NOT NULL`,
+    ],
+  },
 ];
 
 /**

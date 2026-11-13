@@ -34,8 +34,9 @@ describe("the right-hand end of the top bar", () => {
 describe("the account menu", () => {
   const menu = read("./account-menu.tsx");
 
-  it("goes to three places and no more", () => {
+  it("goes to ajustes, visitas, proyectos, and the way out", () => {
     expect(menu).toContain('href: "/ajustes", label: "Ajustes"');
+    expect(menu).toContain('href: "/visitas", label: "Visitas"');
     expect(menu).toContain('href: "/proyectos", label: "Proyectos"');
     expect(menu).toContain('href="/salir"');
     expect(menu).toContain("Cerrar sesión");

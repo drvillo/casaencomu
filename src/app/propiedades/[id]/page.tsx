@@ -16,6 +16,7 @@ import { currentProjectId, db } from "@/lib/db";
 import { backHref } from "@/lib/filters";
 import { DIMENSION_LABELS, DIMENSIONS, STAGE_LABELS, type Stage } from "@/lib/listing";
 import { markReviewed } from "@/lib/notifications";
+import { visitStatusClause } from "@/lib/visit-plan";
 import { readMine } from "@/lib/opinions";
 import { contributors, dimensionAverage, familyAverage, isPartial, matrix, memberAverage, type RatingRow } from "@/lib/ratings";
 
@@ -120,6 +121,10 @@ function describe(kind: string, p: Record<string, unknown>) {
       return "Opinión publicada";
     case "opinion_withdrawn":
       return "Opinión retirada";
+    case "visit_status":
+      return visitStatusClause(p);
+    case "visit_reply":
+      return "Respuesta del anunciante";
     default:
       return kind;
   }
@@ -308,6 +313,9 @@ export default async function PropiedadPage({
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] text-body">
           {summary && <span>{summary}</span>}
           <StageChip stage={p.stage} />
+          <Link href={`/visitas/${p.id}`} className="font-medium text-ink underline underline-offset-4">
+            Contacto con el anunciante
+          </Link>
           <span className="text-muted">{family !== null ? `★ ${score(family)} en familia` : "Sin valorar"}</span>
         </div>
       </header>

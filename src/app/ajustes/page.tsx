@@ -8,6 +8,50 @@ import RecoveryCodeForm from "./recovery";
 import { PERSON_NAME_MAX } from "@/lib/project-shape";
 import { CopyBox } from "./copy";
 import { renombrarseAction } from "./actions";
+import { Disponibilidad, type HoursInitial } from "./disponibilidad";
+import { freeTime, userId } from "@/lib/visit";
+
+const hhmm = (min: number) =>
+  `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+function clockIn(iso: string, zoneName: string) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: zoneName,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(iso));
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value ?? "";
+  const hour = get("hour") === "24" ? "00" : get("hour");
+  return { fecha: `${get("year")}-${get("month")}-${get("day")}`, hora: `${hour}:${get("minute")}` };
+}
+
+async function hoursOf(id: string): Promise<HoursInitial> {
+  const parsed = userId(id);
+  const rules = await freeTime(parsed);
+  const zones = new Set(rules.map((rule) => rule.zone));
+  const zoneName = zones.size === 1 ? [...zones][0] : "Europe/Madrid";
+  const days = Array.from({ length: 7 }, () => ({ inicio: "", fin: "" }));
+  const spans: HoursInitial["spans"] = [];
+  for (const rule of rules) {
+    if (rule.kind === "weekly") {
+      const slot = days[rule.weekday - 1];
+      if (!slot.inicio) {
+        slot.inicio = hhmm(rule.startMin);
+        slot.fin = hhmm(rule.endMin);
+      }
+      continue;
+    }
+    const start = clockIn(rule.start, zoneName);
+    const end = clockIn(rule.end, zoneName);
+    spans.push({ fecha: start.fecha, inicio: start.hora, fin: end.hora });
+  }
+  spans.push({ fecha: "", inicio: "", fin: "" });
+  return { zoneName, days, spans };
+}
 
 /**
  * Everything about you rather than about a home: what the family sees you called, and how a home
@@ -20,7 +64,8 @@ import { renombrarseAction } from "./actions";
  * thing you reach for when neither of those works (F37, PIP-14).
  */
 export default async function AjustesPage() {
-  const { capture_token, name, email } = await currentUser();
+  const { capture_token, name, email, id } = await currentUser();
+  const hours = await hoursOf(id);
   const publicUrl = process.env.PUBLIC_URL || "http://localhost:3000";
   const bookmarklet = buildBookmarklet(publicUrl, capture_token);
   const now = new Date().toLocaleString("es-ES", { timeZone: "Europe/Madrid" });
@@ -61,6 +106,15 @@ export default async function AjustesPage() {
           </button>
         </form>
         <p className="text-sm text-muted">Entras como {email}.</p>
+      </section>
+
+      <section className="space-y-3 py-8">
+        <h2 className={h2}>Cuándo puedes visitar</h2>
+        <p className="text-body">
+          Las horas en las que puedes ver un piso. El grupo las usa para elegir una visita. Una franja
+          vacía no se guarda.
+        </p>
+        <Disponibilidad initial={hours} />
       </section>
 
       <section className="space-y-3 py-8">

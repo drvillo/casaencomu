@@ -1,5 +1,12 @@
 # CasaEnComú — what is done, and what is not
 
+## 2026-11-13 — Visit pipeline is in the tree
+
+The shared visit pipeline is in this checkout. Members can store free hours, write to an
+advertiser, and read the reply on `/visitas`. See `docs/VISITAS.md`.
+
+The Air was not updated. This note is not a deploy. PIP-12's task half is not done.
+
 ## 2026-11-13 — Local demo repaired and populated from the Air
 
 The local demo at `http://127.0.0.1:3120/propiedades` now uses a separate copy of the Air's data.

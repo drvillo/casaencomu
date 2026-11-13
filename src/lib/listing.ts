@@ -78,6 +78,8 @@ export const EVENT_KINDS = [
   // Content-free, both of them: the feed says somebody spoke, never what they said (#139).
   "opinion",
   "opinion_withdrawn",
+  "visit_status",
+  "visit_reply",
 ] as const;
 export type EventKind = (typeof EVENT_KINDS)[number];
 

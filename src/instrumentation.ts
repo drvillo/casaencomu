@@ -1,6 +1,7 @@
 // ponytail: one flag per loop, no queue — an overlapping run is skipped, not queued
 let running = false;
 let filling = false;
+let mailing = false;
 
 export async function register() {
   if (
@@ -49,6 +50,19 @@ export async function register() {
       console.error("[enrich] run failed", e);
     } finally {
       filling = false;
+    }
+  }, 120_000).unref();
+
+  const { act } = await import("./lib/visit");
+  setInterval(async () => {
+    if (mailing) return;
+    mailing = true;
+    try {
+      await eachProject(() => act({ type: "deliver" }));
+    } catch (e) {
+      console.error("[visit] deliver failed", e);
+    } finally {
+      mailing = false;
     }
   }, 120_000).unref();
 }

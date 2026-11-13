@@ -209,7 +209,10 @@ describe("the save is one write, and writes only what changed", () => {
 
   it("everything lands in one transaction", () => {
     const body = actions.slice(actions.indexOf("export async function stageAction"));
-    expect(body.slice(0, body.indexOf("\n}\n")).match(/db\.batch\(/g) ?? []).toHaveLength(1);
+    const fn = body.slice(0, body.indexOf("\n}\n"));
+    expect(fn).toContain('db.transaction("write")');
+    expect(fn).toContain("commitStage(");
+    expect(fn).not.toContain("db.batch(");
   });
 
   it("no longer writes a score at all: that only happens through a publication", () => {

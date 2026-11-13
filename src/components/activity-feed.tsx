@@ -2,6 +2,7 @@ import Link from "next/link";
 import { availabilityLine } from "@/lib/availability";
 import type { Row } from "@/lib/activity";
 import { STAGE_LABELS } from "@/lib/listing";
+import { visitStatusClause } from "@/lib/visit-plan";
 import { ago } from "./propiedades/format";
 
 const eur = (n: unknown) => (typeof n === "number" ? `${n.toLocaleString("es-ES")} €` : "—");
@@ -47,6 +48,10 @@ export function line(e: Row) {
       return `${who} publicó su opinión sobre ${t}`;
     case "opinion_withdrawn":
       return `${who} retiró su opinión sobre ${t}`;
+    case "visit_status":
+      return `${visitStatusClause(p)} · ${t}`;
+    case "visit_reply":
+      return `El anunciante respondió sobre ${t}`;
     default:
       return `${who}: ${e.kind} en ${t}`;
   }
