@@ -1,5 +1,6 @@
 import { AVAILABILITY_LABEL, type SourceAvailability } from "@/lib/availability";
 import { STAGE_LABELS, type Stage } from "@/lib/listing";
+import { VISIT_LABELS, type VisitStatus } from "@/lib/visit-plan";
 
 /**
  * Status colour comes from the theme tokens, never from a Tailwind palette utility. `bg-sky-100`
@@ -51,6 +52,21 @@ const Mark = ({ stage }: { stage: Stage }) => (
     <path d={STAGE_MARK[stage]} />
   </svg>
 );
+
+const VISIT_TONE: Record<VisitStatus, Tone> = {
+  por_contactar: "neutral",
+  contactado: "info",
+  esperando_respuesta: "warning",
+  no_sigue: "neutral",
+  visita_propuesta: "warning",
+  visita_confirmada: "visit",
+  visitada: "success",
+  rechazada: "danger",
+};
+
+export function VisitChip({ status }: { status: VisitStatus }) {
+  return <Chip tone={VISIT_TONE[status]}>{VISIT_LABELS[status]}</Chip>;
+}
 
 export function StageChip({ stage }: { stage: string }) {
   const s = stage as Stage;

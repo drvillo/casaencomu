@@ -27,6 +27,7 @@ const AT = "2026-11-01T00:00:00.000Z";
 const USER = randomUUID();
 const madrid = zone("Europe/Madrid");
 if (!madrid.ok) throw new Error("zone");
+const madridZone = madrid.zone;
 const NOW = new Date("2026-11-17T08:00:00.000Z");
 const fixture = readFileSync(new URL("./__fixtures__/fotocasa.html", import.meta.url), "utf8");
 const FOTOCASA_URL = "https://www.fotocasa.es/es/comprar/vivienda/barcelona-capital/some-slug/190311653/d";
@@ -101,7 +102,7 @@ function recording() {
 }
 
 async function wednesday() {
-  const rule = weeklyRule({ weekday: 3, startHour: 10, startMinute: 0, endHour: 12, endMinute: 0, zone: madrid.zone });
+  const rule = weeklyRule({ weekday: 3, startHour: 10, startMinute: 0, endHour: 12, endMinute: 0, zone: madridZone });
   if (!rule.ok) throw new Error("rule");
   await act({ type: "save_rules", userId: userId(USER), rules: [rule.rule] });
 }
@@ -187,7 +188,7 @@ describe("confirm and notes", () => {
       startMinute: 0,
       endHour: 10,
       endMinute: 30,
-      zone: madrid.zone,
+      zone: madridZone,
     });
     if (!slot.ok) throw new Error("slot");
     const sent = recording();
@@ -218,7 +219,7 @@ describe("confirm and notes", () => {
       startMinute: 0,
       endHour: 11,
       endMinute: 30,
-      zone: madrid.zone,
+      zone: madridZone,
     });
     if (!slot.ok) throw new Error("slot");
     const result = await act(
