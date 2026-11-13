@@ -5,6 +5,8 @@ _2026-11-13. How one household sets free hours, writes to an advertiser, and rea
 
 The code is in this tree. It is not a claim that the Air was updated.
 
+The letter is a fixed Spanish template. This path does not call the listing model.
+
 ---
 
 ## 1. What the app does
@@ -87,3 +89,35 @@ when something POSTs it to `/api/visitas/entrada`.
 
 Outbound rows are inserted `unsent` before any send. A timer every two minutes delivers rows
 that are still `unsent`. A throw leaves the row `unsent`.
+
+---
+
+## 5. How a reply becomes a time
+
+A member with no free hours does not block the others. If no member has free hours, the app does
+not pick a time and does not send a letter. It marks the case for attention.
+
+A slot is 30 minutes. It must sit inside the advertiser's offer and inside the free hours of
+every member who has hours. The app takes the earliest start that is at least 12 hours ahead. If
+no start is that far ahead, it takes the earliest start that is still after now. If the window
+has already started and 30 minutes still fit, the start moves to the next whole minute. A window
+that has already ended is not a slot.
+
+Parsed clocks use `Europe/Madrid`. A weekly window does not cross midnight.
+
+If the reply says the home is still available and a slot exists, the status becomes
+`visita_confirmada` and the app sends a confirmation. The family stage becomes `visita_prevista`
+in the same write, unless the stage is `descartada` or that write conflicts. The visit stays
+either way.
+
+If the reply offers times and none fit, the status becomes `visita_propuesta`. The app asks for
+other times. The case needs attention.
+
+If the reply says the home is gone and offers no time, the status becomes `no_sigue`. The app
+sends no letter. The case needs attention.
+
+If the reply refuses and also offers a time, the status stays. The same is true when the text
+has no clear answer. The app sends no letter. The case needs attention.
+
+A person can confirm a time by hand even when it is outside the free hours. That form sends the
+case version and the stage version. If either changed, the app saves nothing.
