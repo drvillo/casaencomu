@@ -41,6 +41,17 @@ export default async function VisitaPage({ params }: { params: Promise<{ id: str
         </Link>
       </div>
 
+      <section className="space-y-3">
+        <h2 className={h2}>Anunciante</h2>
+        {current ? null : <p className="text-body">Todavía no hay un contacto. Escribe la dirección y, si quieres, la primera carta.</p>}
+        <EmailForm
+          propertyId={id}
+          caseVersion={current ? current.caseVersion : null}
+          email={current ? current.contactEmail : ""}
+          canSend={!current || current.status === "por_contactar" || current.status === "contactado"}
+        />
+      </section>
+
       {current ? (
         <>
           <div className="flex flex-wrap items-center gap-2">
@@ -53,15 +64,6 @@ export default async function VisitaPage({ params }: { params: Promise<{ id: str
               Hora confirmada: {fmtDateTime(current.confirmed.start)} a {fmtDateTime(current.confirmed.end)}.
             </p>
           )}
-          <section className="space-y-3">
-            <h2 className={h2}>Anunciante</h2>
-            <EmailForm
-              propertyId={id}
-              caseVersion={current.caseVersion}
-              email={current.contactEmail}
-              canSend={current.status === "por_contactar" || current.status === "contactado"}
-            />
-          </section>
           {options.length > 0 && (
             <section className="space-y-3">
               <h2 className={h2}>Estado</h2>
@@ -93,13 +95,7 @@ export default async function VisitaPage({ params }: { params: Promise<{ id: str
             )}
           </section>
         </>
-      ) : (
-        <section className="space-y-3">
-          <h2 className={h2}>Anunciante</h2>
-          <p className="text-body">Todavía no hay un contacto. Escribe la dirección y, si quieres, la primera carta.</p>
-          <EmailForm propertyId={id} caseVersion={null} email="" canSend />
-        </section>
-      )}
+      ) : null}
     </div>
   );
 }

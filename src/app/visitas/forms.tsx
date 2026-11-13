@@ -41,7 +41,7 @@ export function EmailForm({
       {caseVersion !== null && <input type="hidden" name="caseVersion" value={caseVersion} />}
       <label className="block space-y-1.5 text-sm font-medium text-ink">
         Correo del anunciante
-        <input key={typed} type="email" name="correo" required maxLength={200} defaultValue={typed} className={input} />
+        <input key={`correo-${typed}`} type="email" name="correo" required maxLength={200} defaultValue={typed} className={input} />
       </label>
       <div className="flex flex-wrap gap-2">
         <button type="submit" name="enviar" value="0" aria-busy={pending} className={quiet}>
@@ -116,9 +116,9 @@ export function ConfirmForm({
       <p className="text-sm font-medium text-ink">Confirmar una hora</p>
       <p className="text-sm text-muted">Hora de Madrid. Puedes elegir una hora aunque no esté en los huecos del grupo.</p>
       <div className="grid gap-2 sm:grid-cols-3">
-        <input key={fecha} type="date" name="fecha" required defaultValue={fecha} aria-label="Día" className={input} />
-        <input key={inicio} type="time" name="inicio" required defaultValue={inicio} aria-label="Desde" className={input} />
-        <input key={fin} type="time" name="fin" required defaultValue={fin} aria-label="Hasta" className={input} />
+        <input key={`fecha-${fecha}`} type="date" name="fecha" required defaultValue={fecha} aria-label="Día" className={input} />
+        <input key={`inicio-${inicio}`} type="time" name="inicio" required defaultValue={inicio} aria-label="Desde" className={input} />
+        <input key={`fin-${fin}`} type="time" name="fin" required defaultValue={fin} aria-label="Hasta" className={input} />
       </div>
       <button type="submit" aria-busy={pending} className={button}>
         {pending ? "Guardando…" : "Confirmar esta hora"}
@@ -140,7 +140,7 @@ export function NoteForm({ propertyId, caseVersion, note }: { propertyId: string
       <label className="block space-y-1.5 text-sm font-medium text-ink">
         Nota
         <textarea
-          key={typed}
+          key={`nota-${typed}`}
           name="nota"
           maxLength={2000}
           rows={4}
