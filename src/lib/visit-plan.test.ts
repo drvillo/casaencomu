@@ -135,6 +135,15 @@ describe("pickSlot", () => {
     const past = interval(instant("2026-11-18T06:00:00.000Z"), instant("2026-11-18T07:00:00.000Z"));
     expect(pickSlot({ offers: [past], rulesByMember: [[cover]], now })).toEqual({ kind: "none" });
   });
+
+  it("starts at the next minute when the free window already began", () => {
+    const open = interval(instant("2026-11-18T08:00:00.000Z"), instant("2026-11-18T12:00:00.000Z"));
+    const during = new Date("2026-11-18T09:00:00.000Z");
+    expect(pickSlot({ offers: [open], rulesByMember: [[cover]], now: during })).toEqual({
+      kind: "slot",
+      slot: { start: "2026-11-18T09:01:00.000Z", end: "2026-11-18T09:31:00.000Z" },
+    });
+  });
 });
 
 describe("nextVisitStatus", () => {

@@ -246,8 +246,7 @@ function subjectFor(purpose: string, title: string, slot: Interval | null) {
 
 function replyDomain() {
   const domain = process.env.MAIL_REPLY_DOMAIN?.trim() ?? "";
-  if (!domain) throw new Error("MAIL_REPLY_DOMAIN is not set");
-  return domain;
+  return domain || null;
 }
 
 function num(value: unknown) {
@@ -343,6 +342,7 @@ async function queue(
   input: { propertyId: string; purpose: "ask" | "confirm" | "counter"; key: string; body: string; inReplyTo: string | null; at: string },
 ) {
   if (await hasKey(tx, input.key)) return;
+  const domain = replyDomain();
   await tx.execute({
     sql: `INSERT INTO visit_messages (
             id, property_id, direction, purpose, provider_message_id, idempotency_key, rfc_message_id,
@@ -353,7 +353,7 @@ async function queue(
       input.propertyId,
       input.purpose,
       input.key,
-      rfcMessageId(input.key, replyDomain()),
+      domain ? rfcMessageId(input.key, domain) : null,
       input.inReplyTo,
       input.body,
       input.at,
@@ -651,8 +651,9 @@ async function sendUnsent(mail: Mailer) {
       ORDER BY m.created_at, m.id`,
   );
   if (!pending.rows.length) return 0;
-  const project = await currentProjectId();
   const domain = replyDomain();
+  if (!domain) return 0;
+  const project = await currentProjectId();
   let sent = 0;
   for (const row of pending.rows) {
     const address = replyAddress(project, String(row.reply_token), domain);
@@ -661,6 +662,7 @@ async function sendUnsent(mail: Mailer) {
         ? { start: instant(String(row.confirmed_start)), end: instant(String(row.confirmed_end)) }
         : null;
     const idempotencyKey = String(row.idempotency_key);
+    const messageId = String(row.rfc_message_id ?? rfcMessageId(idempotencyKey, domain));
     const result = await mail.send({
       to: String(row.contact_email) as Email,
       from: `${FROM_NAME} <${address}>`,
@@ -668,13 +670,13 @@ async function sendUnsent(mail: Mailer) {
       subject: subjectFor(String(row.purpose), String(row.title), slot),
       text: String(row.body),
       idempotencyKey,
-      messageId: String(row.rfc_message_id ?? rfcMessageId(idempotencyKey, domain)),
+      messageId,
     });
     const tx = await db.transaction("write");
     try {
       const updated = await tx.execute({
-        sql: "UPDATE visit_messages SET send_state = 'sent', provider_message_id = ? WHERE id = ? AND send_state = 'unsent'",
-        args: [result.providerMessageId, String(row.id)],
+        sql: "UPDATE visit_messages SET send_state = 'sent', provider_message_id = ?, rfc_message_id = ? WHERE id = ? AND send_state = 'unsent'",
+        args: [result.providerMessageId, messageId, String(row.id)],
       });
       await tx.commit();
       if (Number(updated.rowsAffected) === 1) sent += 1;

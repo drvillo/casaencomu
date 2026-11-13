@@ -603,9 +603,9 @@ export function pickSlot(input: {
       pieces = intersectSpans(pieces, free);
     }
     for (const piece of pieces) {
-      if (piece.end - piece.start < visitMs) continue;
-      if (piece.start <= nowMs) continue;
-      candidates.push({ start: piece.start, end: piece.start + visitMs, offer: offerIndex });
+      const start = piece.start > nowMs ? piece.start : Math.ceil((nowMs + 1) / 60_000) * 60_000;
+      if (start + visitMs > piece.end) continue;
+      candidates.push({ start, end: start + visitMs, offer: offerIndex });
     }
   });
   if (candidates.length === 0) return { kind: "none" };

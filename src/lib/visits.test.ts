@@ -6,6 +6,7 @@ import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { canonicalFacts, factsHash } from "./changes";
 import { extract } from "./extract";
 import {
+  emailAddress,
   propertyId,
   providerMessageId,
   replyToken,
@@ -154,6 +155,34 @@ describe("ingest", () => {
     );
     await act({ type: "deliver" }, { mail: again.mail, now: () => NOW });
     expect(again.calls).toHaveLength(1);
+  });
+
+  it("stores the first letter unsent when the reply domain is missing", async () => {
+    const id = await home("revisando");
+    const previous = process.env.MAIL_REPLY_DOMAIN;
+    delete process.env.MAIL_REPLY_DOMAIN;
+    const sent = recording();
+    const email = emailAddress("anunciante@example.com");
+    if (!email.ok) throw new Error("email");
+    try {
+      const result = await act(
+        {
+          type: "open",
+          propertyId: pid(id),
+          contactEmail: email.email,
+          actorId: userId(USER),
+          send: true,
+          caseVersion: null,
+        },
+        { mail: sent.mail, now: () => NOW },
+      );
+      expect(result.ok).toBe(true);
+      expect(sent.calls).toHaveLength(0);
+      expect(String((await rows("SELECT status FROM visit_cases WHERE property_id = ?", id))[0].status)).toBe("esperando_respuesta");
+      expect(String((await rows("SELECT send_state FROM visit_messages WHERE property_id = ?", id))[0].send_state)).toBe("unsent");
+    } finally {
+      process.env.MAIL_REPLY_DOMAIN = previous;
+    }
   });
 
   it("books a slot from revisando into visita_prevista", async () => {

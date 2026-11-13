@@ -28,7 +28,7 @@ The log transport writes three lines to stdout: the subject, the recipient, and 
 returns a provider id `log:` plus the idempotency key. It does not open a socket. Tests use this
 transport, or an injected mailer. They do not call Resend or SMTP.
 
-Set `MAIL_REPLY_DOMAIN` before a letter can be addressed. From and Reply-To are both
+A letter is stored as `unsent` when `MAIL_REPLY_DOMAIN` is empty. The two-minute timer sends it after you set the domain. From and Reply-To are both
 
 ```
 visitas+<projectId>.<token>@<MAIL_REPLY_DOMAIN>
